@@ -4,6 +4,7 @@ external/rang.hpp
 peers.txt
 *.o
 *.a
+*.log
 .vscode/
 .idea/
 cmake-build-*/
