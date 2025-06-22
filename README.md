@@ -1,6 +1,6 @@
-# P2P Chat System
+# C++23 P2P Chat System
 
-A peer-to-peer chat application built with C++23, featuring end-to-end encryption, colored output, and vi-like CLI interaction.
+A peer-to-peer chat application built with C++23, featuring end-to-end encryption, colored output, and vi-like CLI interaction. Uses boost::asio.
 
 ## Features
 
