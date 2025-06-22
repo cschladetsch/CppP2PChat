@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find required packages
-find_package(Boost 1.75 REQUIRED COMPONENTS system thread filesystem chrono)
+find_package(Boost 1.75 REQUIRED COMPONENTS system thread filesystem chrono program_options)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 

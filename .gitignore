@@ -1,0 +1,8 @@
+build/
+external/rang.hpp
+peers.txt
+*.o
+*.a
+.vscode/
+.idea/
+cmake-build-*/

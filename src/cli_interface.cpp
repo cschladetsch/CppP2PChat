@@ -10,6 +10,7 @@
 #include <thread>
 #include <atomic>
 #include <iomanip>
+#include <queue>
 
 namespace p2p {
 
@@ -34,10 +35,7 @@ struct CLIInterface::Impl {
         rx.set_word_break_characters(" \t\n!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
         
         // Vi mode keybindings
-        rx.bind_key(Replxx::KEY::ESCAPE, [this](char32_t) {
-            rx.set_state(Replxx::State::NORMAL);
-            return Replxx::ACTION::CONTINUE;
-        });
+        // Remove vi mode keybindings for now as they may not be compatible with this version
     }
 
     void startDisplayThread() {
@@ -92,7 +90,7 @@ void CLIInterface::run() {
             auto payload = msg.getPayload();
             if (payload.size() >= 2) {
                 uint16_t idLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
-                if (payload.size() >= 2 + idLen) {
+                if (payload.size() >= static_cast<size_t>(2 + idLen)) {
                     std::string peerId(payload.begin() + 2, payload.begin() + 2 + idLen);
                     std::vector<uint8_t> publicKey(payload.begin() + 2 + idLen, payload.end());
                     
@@ -263,9 +261,13 @@ void CLIInterface::handleList(const std::vector<std::string>& args) {
     
     displaySystemMessage("Connected peers:");
     for (const auto& peer : peers) {
-        std::string status = peer.isConnected ? 
-            rang::fg::green + "[ONLINE]" : 
-            rang::fg::red + "[OFFLINE]";
+        std::stringstream statusStream;
+        if (peer.isConnected) {
+            statusStream << rang::fg::green << "[ONLINE]";
+        } else {
+            statusStream << rang::fg::red << "[OFFLINE]";
+        }
+        std::string status = statusStream.str();
         
         pImpl->queueDisplay([=]() {
             std::cout << "  " << status << rang::style::reset 
