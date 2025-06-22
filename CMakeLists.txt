@@ -11,9 +11,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin)
 
 # Find required packages
-find_package(Boost 1.75 REQUIRED COMPONENTS system thread filesystem chrono program_options)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 # FetchContent for external dependencies
 include(FetchContent)
@@ -24,7 +24,25 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/AmokHuginnsson/replxx
     GIT_TAG        release-0.0.4
 )
-FetchContent_MakeAvailable(replxx)
+
+# Fetch cppzmq (C++ bindings for ZeroMQ)
+FetchContent_Declare(
+    cppzmq
+    GIT_REPOSITORY https://github.com/zeromq/cppzmq
+    GIT_TAG        v4.10.0
+)
+
+# Fetch libzmq
+FetchContent_Declare(
+    libzmq
+    GIT_REPOSITORY https://github.com/zeromq/libzmq
+    GIT_TAG        v4.3.5
+)
+
+set(ZMQ_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(libzmq cppzmq replxx)
 
 # Download rang.h
 file(DOWNLOAD 
@@ -56,11 +74,16 @@ add_executable(p2pchat ${SOURCES})
 
 # Link libraries
 target_link_libraries(p2pchat
-    ${Boost_LIBRARIES}
+    libzmq-static
+    cppzmq-static
     ${OPENSSL_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     replxx::replxx
 )
+
+# Include directories for cppzmq
+target_include_directories(p2pchat PRIVATE ${cppzmq_SOURCE_DIR})
 
 # Compiler warnings
 if(MSVC)
@@ -95,11 +118,15 @@ if(BUILD_TESTS)
     )
     
     target_link_libraries(p2pchat_lib
-        ${Boost_LIBRARIES}
+        libzmq-static
+        cppzmq-static
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_PROGRAM_OPTIONS_LIBRARY}
         replxx::replxx
     )
+    
+    target_include_directories(p2pchat_lib PRIVATE ${cppzmq_SOURCE_DIR})
     
     # Test executables
     add_executable(TestCrypto Tests/TestCrypto.cpp)

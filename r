@@ -87,6 +87,13 @@ sleep 1
 tmux send-keys -t p2pchat:peers.0 "list" C-m
 sleep 0.5
 tmux send-keys -t p2pchat:peers.1 "list" C-m
+sleep 1
+# Send a test message from peer 1
+echo -e "${GREEN}→ Sending test message...${NC}"
+tmux send-keys -t p2pchat:peers.0 "Hello from Peer 1!" C-m
+sleep 0.5
+# Send a test message from peer 2
+tmux send-keys -t p2pchat:peers.1 "Hello from Peer 2!" C-m
 
 # Set pane titles
 tmux select-pane -t p2pchat:peers.0 -T "λ Peer 1 (Port $PORT1)"
@@ -113,6 +120,8 @@ echo -e "  ${CYAN}broadcast${NC} <message> - Send to all peers"
 echo -e "  ${CYAN}info${NC} - Show local peer info"
 echo -e "  ${CYAN}help${NC} - Show all commands"
 echo -e "  ${CYAN}quit${NC} - Exit the application"
+echo -e ""
+echo -e "  ${GREEN}Note:${NC} Any text that's not a command is automatically broadcast!"
 echo ""
 echo -e "${MAGENTA}${BOLD}λ${NC} ${GREEN}Starting chat session...${NC}"
 echo ""

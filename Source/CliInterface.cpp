@@ -11,6 +11,7 @@
 #include <atomic>
 #include <iomanip>
 #include <queue>
+#include <condition_variable>
 
 namespace p2p {
 
@@ -94,13 +95,7 @@ void CLIInterface::Run() {
                     std::string peerId(payload.begin() + 2, payload.begin() + 2 + idLen);
                     std::vector<uint8_t> publicKey(payload.begin() + 2 + idLen, payload.end());
                     
-                    PeerInfo peer;
-                    peer.id = peerId;
-                    peer.publicKey = publicKey;
-                    peer.isConnected = true;
-                    peer.lastSeen = std::chrono::system_clock::now();
-                    
-                    pImpl_->peerManager.AddPeer(peer);
+                    // NetworkManager handles peer creation with proper address/port
                     DisplaySystemMessage("Handshake received from " + peerId);
                 }
             }
@@ -224,7 +219,17 @@ void CLIInterface::ProcessCommand(const std::string& input) {
     if (it != pImpl_->commands.end()) {
         it->second(args);
     } else {
-        DisplayError("Unknown command: " + args[0]);
+        // Treat unrecognized input as broadcast message
+        auto msg = Message::CreateTextMessage(input);
+        pImpl_->network.BroadcastMessage(msg);
+        
+        // Display the message locally
+        auto connectedPeers = pImpl_->network.GetConnectedPeers();
+        if (connectedPeers.empty()) {
+            DisplayWarning("No peers connected to receive message");
+        } else {
+            DisplayMessage("broadcast", input, false);
+        }
     }
 }
 
@@ -333,7 +338,8 @@ void CLIInterface::HandleHelp(const std::vector<std::string>& args) {
                   << "  broadcast <message>      - Send message to all peers\n"
                   << "  info                     - Show local peer information\n"
                   << "  help                     - Show this help\n"
-                  << "  quit/exit                - Exit the program\n";
+                  << "  quit/exit                - Exit the program\n"
+                  << "\nNote: Any text that is not a command is sent as a broadcast message.\n";
     });
 }
 

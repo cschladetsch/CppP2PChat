@@ -4,9 +4,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
-#include <boost/asio.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/system/error_code.hpp>
+#include <thread>
 
 namespace p2p {
 
@@ -19,7 +17,7 @@ public:
                                             const Message& message)>;
     using ConnectionHandler = std::function<void(const std::string& peerId, bool connected)>;
 
-    NetworkManager(boost::asio::io_context& ioContext, PeerManager& peerManager);
+    NetworkManager(PeerManager& peerManager);
     ~NetworkManager();
 
     void Start(uint16_t port);
@@ -38,7 +36,7 @@ public:
 
 private:
     struct Impl;
-    std::unique_ptr<Impl> pImpl;
+    std::unique_ptr<Impl> pImpl_;
 };
 
 } // namespace p2p

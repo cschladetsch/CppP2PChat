@@ -10,33 +10,24 @@ using namespace p2p;
 
 class CLIInterfaceTest : public ::testing::Test {
 protected:
-    boost::asio::io_context ioContext;
     std::unique_ptr<PeerManager> peerManager;
     std::unique_ptr<NetworkManager> network;
     std::unique_ptr<CryptoManager> crypto;
     std::unique_ptr<CLIInterface> cli;
-    std::thread ioThread;
     
     void SetUp() override {
         peerManager = std::make_unique<PeerManager>();
-        network = std::make_unique<NetworkManager>(ioContext, *peerManager);
+        network = std::make_unique<NetworkManager>(*peerManager);
         crypto = std::make_unique<CryptoManager>();
         cli = std::make_unique<CLIInterface>(*network, *peerManager, *crypto);
-        
-        // Run io_context in separate thread
-        ioThread = std::thread([this]() {
-            boost::asio::io_context::work work(ioContext);
-            ioContext.run();
-        });
     }
     
     void TearDown() override {
         if (cli) {
             cli->Stop();
         }
-        ioContext.stop();
-        if (ioThread.joinable()) {
-            ioThread.join();
+        if (network) {
+            network->Stop();
         }
     }
 };

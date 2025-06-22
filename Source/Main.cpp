@@ -2,7 +2,6 @@
 #include "PeerManager.hpp"
 #include "Crypto.hpp"
 #include "CliInterface.hpp"
-#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <thread>
@@ -12,13 +11,9 @@
 namespace po = boost::program_options;
 
 std::atomic<bool> g_running{true};
-boost::asio::io_context* g_ioContext = nullptr;
 
-void signalHandler(int signum) {
+void signalHandler(int /*signum*/) {
     g_running = false;
-    if (g_ioContext) {
-        g_ioContext->stop();
-    }
 }
 
 int main(int argc, char* argv[]) {
@@ -48,12 +43,9 @@ int main(int argc, char* argv[]) {
         std::signal(SIGTERM, signalHandler);
         
         // Initialize components
-        boost::asio::io_context ioContext;
-        g_ioContext = &ioContext;
-        
         p2p::CryptoManager crypto;
         p2p::PeerManager peerManager;
-        p2p::NetworkManager network(ioContext, peerManager);
+        p2p::NetworkManager network(peerManager);
         
         // Generate local peer identity
         auto keyPair = crypto.GenerateKeyPair();
@@ -76,12 +68,6 @@ int main(int argc, char* argv[]) {
         
         // Start network
         network.Start(port);
-        
-        // Start IO context in separate thread
-        std::thread ioThread([&ioContext]() {
-            boost::asio::io_context::work work(ioContext);
-            ioContext.run();
-        });
         
         // Connect to initial peer if specified
         if (vm.count("connect")) {
@@ -114,10 +100,6 @@ int main(int argc, char* argv[]) {
         network.Stop();
         peerManager.SavePeersToFile(peersFile);
         
-        ioContext.stop();
-        if (ioThread.joinable()) {
-            ioThread.join();
-        }
         if (cliThread.joinable()) {
             cliThread.join();
         }
