@@ -1,4 +1,4 @@
-#include "peer_manager.hpp"
+#include "PeerManager.hpp"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -9,17 +9,17 @@ namespace p2p {
 PeerManager::PeerManager() = default;
 PeerManager::~PeerManager() = default;
 
-void PeerManager::addPeer(const PeerInfo& peer) {
+void PeerManager::AddPeer(const PeerInfo& peer) {
     std::lock_guard<std::mutex> lock(mutex_);
     peers_[peer.id] = peer;
 }
 
-void PeerManager::removePeer(const std::string& peerId) {
+void PeerManager::RemovePeer(const std::string& peerId) {
     std::lock_guard<std::mutex> lock(mutex_);
     peers_.erase(peerId);
 }
 
-void PeerManager::updatePeerStatus(const std::string& peerId, bool connected) {
+void PeerManager::UpdatePeerStatus(const std::string& peerId, bool connected) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = peers_.find(peerId);
     if (it != peers_.end()) {
@@ -28,7 +28,7 @@ void PeerManager::updatePeerStatus(const std::string& peerId, bool connected) {
     }
 }
 
-std::optional<PeerInfo> PeerManager::getPeer(const std::string& peerId) const {
+std::optional<PeerInfo> PeerManager::GetPeer(const std::string& peerId) const {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = peers_.find(peerId);
     if (it != peers_.end()) {
@@ -37,7 +37,7 @@ std::optional<PeerInfo> PeerManager::getPeer(const std::string& peerId) const {
     return std::nullopt;
 }
 
-std::vector<PeerInfo> PeerManager::getAllPeers() const {
+std::vector<PeerInfo> PeerManager::GetAllPeers() const {
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<PeerInfo> result;
     for (const auto& [id, peer] : peers_) {
@@ -46,7 +46,7 @@ std::vector<PeerInfo> PeerManager::getAllPeers() const {
     return result;
 }
 
-std::vector<PeerInfo> PeerManager::getConnectedPeers() const {
+std::vector<PeerInfo> PeerManager::GetConnectedPeers() const {
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<PeerInfo> result;
     for (const auto& [id, peer] : peers_) {
@@ -57,16 +57,16 @@ std::vector<PeerInfo> PeerManager::getConnectedPeers() const {
     return result;
 }
 
-void PeerManager::setLocalPeer(const PeerInfo& localPeer) {
+void PeerManager::SetLocalPeer(const PeerInfo& localPeer) {
     std::lock_guard<std::mutex> lock(mutex_);
     localPeer_ = localPeer;
 }
 
-const PeerInfo& PeerManager::getLocalPeer() const {
+const PeerInfo& PeerManager::GetLocalPeer() const {
     return localPeer_;
 }
 
-void PeerManager::savePeersToFile(const std::string& filename) {
+void PeerManager::SavePeersToFile(const std::string& filename) {
     std::lock_guard<std::mutex> lock(mutex_);
     std::ofstream file(filename);
     if (!file.is_open()) return;
@@ -85,7 +85,7 @@ void PeerManager::savePeersToFile(const std::string& filename) {
     }
 }
 
-void PeerManager::loadPeersFromFile(const std::string& filename) {
+void PeerManager::LoadPeersFromFile(const std::string& filename) {
     std::lock_guard<std::mutex> lock(mutex_);
     std::ifstream file(filename);
     if (!file.is_open()) return;

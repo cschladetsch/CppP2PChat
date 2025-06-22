@@ -30,7 +30,7 @@ file(DOWNLOAD
 
 # Include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/external
     ${Boost_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
@@ -38,12 +38,12 @@ include_directories(
 
 # Source files
 set(SOURCES
-    src/main.cpp
-    src/crypto.cpp
-    src/network.cpp
-    src/message.cpp
-    src/peer_manager.cpp
-    src/cli_interface.cpp
+    Source/Main.cpp
+    Source/Crypto.cpp
+    Source/Network.cpp
+    Source/Message.cpp
+    Source/PeerManager.cpp
+    Source/CliInterface.cpp
 )
 
 # Create executable
@@ -81,25 +81,25 @@ if(BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
     
     # Test executables
-    add_executable(test_crypto tests/test_crypto.cpp src/crypto.cpp)
-    target_link_libraries(test_crypto 
+    add_executable(TestCrypto Tests/TestCrypto.cpp Source/Crypto.cpp)
+    target_link_libraries(TestCrypto 
         gtest_main
         ${OPENSSL_LIBRARIES}
     )
     
-    add_executable(test_message tests/test_message.cpp src/message.cpp)
-    target_link_libraries(test_message 
+    add_executable(TestMessage Tests/TestMessage.cpp Source/Message.cpp)
+    target_link_libraries(TestMessage 
         gtest_main
     )
     
-    add_executable(test_peer_manager tests/test_peer_manager.cpp src/peer_manager.cpp)
-    target_link_libraries(test_peer_manager 
+    add_executable(TestPeerManager Tests/TestPeerManager.cpp Source/PeerManager.cpp)
+    target_link_libraries(TestPeerManager 
         gtest_main
     )
     
     # Add tests
     include(GoogleTest)
-    gtest_discover_tests(test_crypto)
-    gtest_discover_tests(test_message)
-    gtest_discover_tests(test_peer_manager)
+    gtest_discover_tests(TestCrypto)
+    gtest_discover_tests(TestMessage)
+    gtest_discover_tests(TestPeerManager)
 endif()

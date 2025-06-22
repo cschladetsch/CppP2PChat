@@ -18,24 +18,24 @@ public:
         std::vector<uint8_t> privateKey;
     };
 
-    KeyPair generateKeyPair();
+    KeyPair GenerateKeyPair();
     
-    std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data, 
+    std::vector<uint8_t> Encrypt(const std::vector<uint8_t>& data, 
                                  const std::vector<uint8_t>& recipientPublicKey);
     
-    std::vector<uint8_t> decrypt(const std::vector<uint8_t>& encryptedData,
+    std::vector<uint8_t> Decrypt(const std::vector<uint8_t>& encryptedData,
                                  const std::vector<uint8_t>& privateKey);
     
-    std::vector<uint8_t> sign(const std::vector<uint8_t>& data,
+    std::vector<uint8_t> Sign(const std::vector<uint8_t>& data,
                              const std::vector<uint8_t>& privateKey);
     
-    bool verify(const std::vector<uint8_t>& data,
+    bool Verify(const std::vector<uint8_t>& data,
                 const std::vector<uint8_t>& signature,
                 const std::vector<uint8_t>& publicKey);
     
-    std::string generatePeerId(const std::vector<uint8_t>& publicKey);
+    std::string GeneratePeerId(const std::vector<uint8_t>& publicKey);
     
-    std::array<uint8_t, 32> deriveSharedSecret(const std::vector<uint8_t>& privateKey,
+    std::array<uint8_t, 32> DeriveSharedSecret(const std::vector<uint8_t>& privateKey,
                                                const std::vector<uint8_t>& publicKey);
 
 private:

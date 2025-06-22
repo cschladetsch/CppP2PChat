@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "crypto.hpp"
+#include "Crypto.hpp"
 
 using namespace p2p;
 
@@ -9,7 +9,7 @@ protected:
 };
 
 TEST_F(CryptoTest, GenerateKeyPair) {
-    auto keyPair = crypto.generateKeyPair();
+    auto keyPair = crypto.GenerateKeyPair();
     
     EXPECT_FALSE(keyPair.publicKey.empty());
     EXPECT_FALSE(keyPair.privateKey.empty());
@@ -17,51 +17,51 @@ TEST_F(CryptoTest, GenerateKeyPair) {
 }
 
 TEST_F(CryptoTest, GeneratePeerId) {
-    auto keyPair = crypto.generateKeyPair();
-    std::string peerId = crypto.generatePeerId(keyPair.publicKey);
+    auto keyPair = crypto.GenerateKeyPair();
+    std::string peerId = crypto.GeneratePeerId(keyPair.publicKey);
     
     EXPECT_FALSE(peerId.empty());
     EXPECT_EQ(peerId.length(), 16); // 8 bytes in hex = 16 characters
     
     // Same key should generate same ID
-    std::string peerId2 = crypto.generatePeerId(keyPair.publicKey);
+    std::string peerId2 = crypto.GeneratePeerId(keyPair.publicKey);
     EXPECT_EQ(peerId, peerId2);
     
     // Different key should generate different ID
-    auto keyPair2 = crypto.generateKeyPair();
-    std::string peerId3 = crypto.generatePeerId(keyPair2.publicKey);
+    auto keyPair2 = crypto.GenerateKeyPair();
+    std::string peerId3 = crypto.GeneratePeerId(keyPair2.publicKey);
     EXPECT_NE(peerId, peerId3);
 }
 
 TEST_F(CryptoTest, SignAndVerify) {
-    auto keyPair = crypto.generateKeyPair();
+    auto keyPair = crypto.GenerateKeyPair();
     std::vector<uint8_t> data = {'H', 'e', 'l', 'l', 'o'};
     
-    auto signature = crypto.sign(data, keyPair.privateKey);
+    auto signature = crypto.Sign(data, keyPair.privateKey);
     EXPECT_FALSE(signature.empty());
     
     // Verify with correct public key
-    bool valid = crypto.verify(data, signature, keyPair.publicKey);
+    bool valid = crypto.Verify(data, signature, keyPair.publicKey);
     EXPECT_TRUE(valid);
     
     // Verify with wrong data
     std::vector<uint8_t> wrongData = {'W', 'o', 'r', 'l', 'd'};
-    valid = crypto.verify(wrongData, signature, keyPair.publicKey);
+    valid = crypto.Verify(wrongData, signature, keyPair.publicKey);
     EXPECT_FALSE(valid);
     
     // Verify with wrong public key
-    auto keyPair2 = crypto.generateKeyPair();
-    valid = crypto.verify(data, signature, keyPair2.publicKey);
+    auto keyPair2 = crypto.GenerateKeyPair();
+    valid = crypto.Verify(data, signature, keyPair2.publicKey);
     EXPECT_FALSE(valid);
 }
 
 TEST_F(CryptoTest, DeriveSharedSecret) {
-    auto keyPair1 = crypto.generateKeyPair();
-    auto keyPair2 = crypto.generateKeyPair();
+    auto keyPair1 = crypto.GenerateKeyPair();
+    auto keyPair2 = crypto.GenerateKeyPair();
     
     // Derive shared secret from both sides
-    auto secret1 = crypto.deriveSharedSecret(keyPair1.privateKey, keyPair2.publicKey);
-    auto secret2 = crypto.deriveSharedSecret(keyPair2.privateKey, keyPair1.publicKey);
+    auto secret1 = crypto.DeriveSharedSecret(keyPair1.privateKey, keyPair2.publicKey);
+    auto secret2 = crypto.DeriveSharedSecret(keyPair2.privateKey, keyPair1.publicKey);
     
     // Both sides should derive the same secret
     EXPECT_EQ(secret1, secret2);
@@ -70,7 +70,7 @@ TEST_F(CryptoTest, DeriveSharedSecret) {
     EXPECT_EQ(secret1.size(), 32);
     
     // Different key pairs should produce different secrets
-    auto keyPair3 = crypto.generateKeyPair();
-    auto secret3 = crypto.deriveSharedSecret(keyPair1.privateKey, keyPair3.publicKey);
+    auto keyPair3 = crypto.GenerateKeyPair();
+    auto secret3 = crypto.DeriveSharedSecret(keyPair1.privateKey, keyPair3.publicKey);
     EXPECT_NE(secret1, secret3);
 }

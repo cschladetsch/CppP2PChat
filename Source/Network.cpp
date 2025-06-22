@@ -1,7 +1,7 @@
-#include "network.hpp"
-#include "message.hpp"
-#include "peer_manager.hpp"
-#include "crypto.hpp"
+#include "Network.hpp"
+#include "Message.hpp"
+#include "PeerManager.hpp"
+#include "Crypto.hpp"
 #include <boost/asio.hpp>
 #include <boost/asio/strand.hpp>
 #include <memory>
@@ -24,12 +24,12 @@ public:
         , connectionHandler_(connHandler)
         , peerId_(peerId) {}
 
-    void start() {
+    void Start() {
         doReadHeader();
     }
 
-    void sendMessage(const Message& message) {
-        auto data = message.serialize();
+    void SendMessage(const Message& message) {
+        auto data = message.Serialize();
         auto self(shared_from_this());
         
         boost::asio::async_write(socket_,
@@ -41,8 +41,8 @@ public:
             });
     }
 
-    const std::string& getPeerId() const { return peerId_; }
-    void setPeerId(const std::string& id) { peerId_ = id; }
+    const std::string& GetPeerId() const { return peerId_; }
+    void SetPeerId(const std::string& id) { peerId_ = id; }
 
 private:
     void doReadHeader() {
@@ -81,7 +81,7 @@ private:
             [this, self, fullMessage](boost::system::error_code ec, std::size_t) {
                 if (!ec) {
                     try {
-                        Message msg = Message::deserialize(fullMessage);
+                        Message msg = Message::Deserialize(fullMessage);
                         if (messageHandler_) {
                             messageHandler_(peerId_, msg);
                         }
@@ -123,7 +123,7 @@ struct NetworkManager::Impl {
     Impl(boost::asio::io_context& io, PeerManager& pm) 
         : ioContext(io), peerManager(pm) {}
 
-    void startAccept() {
+    void StartAccept() {
         if (!acceptor || !acceptor->is_open()) return;
         
         acceptor->async_accept(
@@ -131,19 +131,19 @@ struct NetworkManager::Impl {
                 if (!ec) {
                     auto session = std::make_shared<Session>(
                         std::move(socket), messageHandler, connectionHandler, "");
-                    session->start();
+                    session->Start();
                     
                     // Temporary store until we get peer ID from handshake
                     std::lock_guard<std::mutex> lock(sessionsMutex);
                     sessions["temp_" + std::to_string(sessions.size())] = session;
                 }
                 if (running) {
-                    startAccept();
+                    StartAccept();
                 }
             });
     }
 
-    void handleConnection(const std::string& peerId, std::shared_ptr<Session> session) {
+    void HandleConnection(const std::string& peerId, std::shared_ptr<Session> session) {
         std::lock_guard<std::mutex> lock(sessionsMutex);
         
         // Remove temporary entry and add with real peer ID
@@ -155,7 +155,7 @@ struct NetworkManager::Impl {
         }
         
         sessions[peerId] = session;
-        session->setPeerId(peerId);
+        session->SetPeerId(peerId);
         
         if (connectionHandler) {
             connectionHandler(peerId, true);
@@ -167,16 +167,16 @@ NetworkManager::NetworkManager(boost::asio::io_context& ioContext, PeerManager& 
     : pImpl(std::make_unique<Impl>(ioContext, peerManager)) {}
 
 NetworkManager::~NetworkManager() {
-    stop();
+    Stop();
 }
 
-void NetworkManager::start(uint16_t port) {
+void NetworkManager::Start(uint16_t port) {
     pImpl->acceptor = std::make_unique<tcp::acceptor>(pImpl->ioContext, tcp::endpoint(tcp::v4(), port));
     pImpl->running = true;
-    pImpl->startAccept();
+    pImpl->StartAccept();
 }
 
-void NetworkManager::stop() {
+void NetworkManager::Stop() {
     pImpl->running = false;
     if (pImpl->acceptor) {
         pImpl->acceptor->close();
@@ -186,7 +186,7 @@ void NetworkManager::stop() {
     pImpl->sessions.clear();
 }
 
-void NetworkManager::connectToPeer(const std::string& address, uint16_t port) {
+void NetworkManager::ConnectToPeer(const std::string& address, uint16_t port) {
     auto socket = std::make_shared<tcp::socket>(pImpl->ioContext);
     tcp::resolver resolver(pImpl->ioContext);
     
@@ -197,12 +197,12 @@ void NetworkManager::connectToPeer(const std::string& address, uint16_t port) {
             if (!ec) {
                 auto session = std::make_shared<Session>(
                     std::move(*socket), pImpl->messageHandler, pImpl->connectionHandler, "");
-                session->start();
+                session->Start();
                 
                 // Send handshake
-                auto localPeer = pImpl->peerManager.getLocalPeer();
-                auto handshake = Message::createHandshakeMessage(localPeer.id, localPeer.publicKey);
-                session->sendMessage(handshake);
+                auto localPeer = pImpl->peerManager.GetLocalPeer();
+                auto handshake = Message::CreateHandshakeMessage(localPeer.id, localPeer.publicKey);
+                session->SendMessage(handshake);
                 
                 std::lock_guard<std::mutex> lock(pImpl->sessionsMutex);
                 pImpl->sessions["temp_outgoing_" + std::to_string(pImpl->sessions.size())] = session;
@@ -210,7 +210,7 @@ void NetworkManager::connectToPeer(const std::string& address, uint16_t port) {
         });
 }
 
-void NetworkManager::disconnectPeer(const std::string& peerId) {
+void NetworkManager::DisconnectPeer(const std::string& peerId) {
     std::lock_guard<std::mutex> lock(pImpl->sessionsMutex);
     auto it = pImpl->sessions.find(peerId);
     if (it != pImpl->sessions.end()) {
@@ -221,32 +221,32 @@ void NetworkManager::disconnectPeer(const std::string& peerId) {
     }
 }
 
-void NetworkManager::sendMessage(const std::string& peerId, const Message& message) {
+void NetworkManager::SendMessage(const std::string& peerId, const Message& message) {
     std::lock_guard<std::mutex> lock(pImpl->sessionsMutex);
     auto it = pImpl->sessions.find(peerId);
     if (it != pImpl->sessions.end()) {
-        it->second->sendMessage(message);
+        it->second->SendMessage(message);
     }
 }
 
-void NetworkManager::broadcastMessage(const Message& message) {
+void NetworkManager::BroadcastMessage(const Message& message) {
     std::lock_guard<std::mutex> lock(pImpl->sessionsMutex);
     for (const auto& [peerId, session] : pImpl->sessions) {
         if (!peerId.starts_with("temp_")) {
-            session->sendMessage(message);
+            session->SendMessage(message);
         }
     }
 }
 
-void NetworkManager::setMessageHandler(MessageHandler handler) {
+void NetworkManager::SetMessageHandler(MessageHandler handler) {
     pImpl->messageHandler = handler;
 }
 
-void NetworkManager::setConnectionHandler(ConnectionHandler handler) {
+void NetworkManager::SetConnectionHandler(ConnectionHandler handler) {
     pImpl->connectionHandler = handler;
 }
 
-std::vector<std::string> NetworkManager::getConnectedPeers() const {
+std::vector<std::string> NetworkManager::GetConnectedPeers() const {
     std::lock_guard<std::mutex> lock(pImpl->sessionsMutex);
     std::vector<std::string> peers;
     for (const auto& [peerId, session] : pImpl->sessions) {

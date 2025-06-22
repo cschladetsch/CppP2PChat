@@ -1,4 +1,4 @@
-#include "message.hpp"
+#include "Message.hpp"
 #include <cstring>
 #include <stdexcept>
 
@@ -7,7 +7,7 @@ namespace p2p {
 Message::Message(MessageType type, const std::vector<uint8_t>& payload)
     : type_(type), payload_(payload) {}
 
-std::vector<uint8_t> Message::serialize() const {
+std::vector<uint8_t> Message::Serialize() const {
     std::vector<uint8_t> result;
     
     // Header: [Type(1) | PayloadSize(4) | Timestamp(8)]
@@ -30,7 +30,7 @@ std::vector<uint8_t> Message::serialize() const {
     return result;
 }
 
-Message Message::deserialize(const std::vector<uint8_t>& data) {
+Message Message::Deserialize(const std::vector<uint8_t>& data) {
     if (data.size() < 13) {
         throw std::runtime_error("Invalid message: too short");
     }
@@ -59,12 +59,12 @@ Message Message::deserialize(const std::vector<uint8_t>& data) {
     return msg;
 }
 
-Message Message::createTextMessage(const std::string& text) {
+Message Message::CreateTextMessage(const std::string& text) {
     std::vector<uint8_t> payload(text.begin(), text.end());
     return Message(MessageType::TEXT, payload);
 }
 
-Message Message::createHandshakeMessage(const std::string& peerId,
+Message Message::CreateHandshakeMessage(const std::string& peerId,
                                       const std::vector<uint8_t>& publicKey) {
     std::vector<uint8_t> payload;
     
@@ -79,7 +79,7 @@ Message Message::createHandshakeMessage(const std::string& peerId,
     return Message(MessageType::HANDSHAKE, payload);
 }
 
-Message Message::createPeerListMessage(const std::vector<std::string>& peers) {
+Message Message::CreatePeerListMessage(const std::vector<std::string>& peers) {
     std::vector<uint8_t> payload;
     
     // Number of peers (2 bytes)
@@ -98,11 +98,11 @@ Message Message::createPeerListMessage(const std::vector<std::string>& peers) {
     return Message(MessageType::PEER_LIST, payload);
 }
 
-Message Message::createPingMessage() {
+Message Message::CreatePingMessage() {
     return Message(MessageType::PING, {});
 }
 
-Message Message::createPongMessage() {
+Message Message::CreatePongMessage() {
     return Message(MessageType::PONG, {});
 }
 

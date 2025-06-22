@@ -1,4 +1,4 @@
-#include "crypto.hpp"
+#include "Crypto.hpp"
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/pem.h>
@@ -25,7 +25,7 @@ struct CryptoManager::Impl {
         ERR_free_strings();
     }
 
-    EVP_PKEY* generateECKeyPair() {
+    EVP_PKEY* GenerateECKeyPair() {
         EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, nullptr);
         if (!ctx) return nullptr;
 
@@ -49,7 +49,7 @@ struct CryptoManager::Impl {
         return pkey;
     }
 
-    std::vector<uint8_t> serializePublicKey(EVP_PKEY* pkey) {
+    std::vector<uint8_t> SerializePublicKey(EVP_PKEY* pkey) {
         BIO* bio = BIO_new(BIO_s_mem());
         if (!bio) return {};
 
@@ -65,7 +65,7 @@ struct CryptoManager::Impl {
         return result;
     }
 
-    std::vector<uint8_t> serializePrivateKey(EVP_PKEY* pkey) {
+    std::vector<uint8_t> SerializePrivateKey(EVP_PKEY* pkey) {
         BIO* bio = BIO_new(BIO_s_mem());
         if (!bio) return {};
 
@@ -81,7 +81,7 @@ struct CryptoManager::Impl {
         return result;
     }
 
-    EVP_PKEY* deserializePublicKey(const std::vector<uint8_t>& keyData) {
+    EVP_PKEY* DeserializePublicKey(const std::vector<uint8_t>& keyData) {
         BIO* bio = BIO_new_mem_buf(keyData.data(), keyData.size());
         if (!bio) return nullptr;
 
@@ -90,7 +90,7 @@ struct CryptoManager::Impl {
         return pkey;
     }
 
-    EVP_PKEY* deserializePrivateKey(const std::vector<uint8_t>& keyData) {
+    EVP_PKEY* DeserializePrivateKey(const std::vector<uint8_t>& keyData) {
         BIO* bio = BIO_new_mem_buf(keyData.data(), keyData.size());
         if (!bio) return nullptr;
 
@@ -103,21 +103,21 @@ struct CryptoManager::Impl {
 CryptoManager::CryptoManager() : pImpl(std::make_unique<Impl>()) {}
 CryptoManager::~CryptoManager() = default;
 
-CryptoManager::KeyPair CryptoManager::generateKeyPair() {
-    EVP_PKEY* pkey = pImpl->generateECKeyPair();
+CryptoManager::KeyPair CryptoManager::GenerateKeyPair() {
+    EVP_PKEY* pkey = pImpl->GenerateECKeyPair();
     if (!pkey) return {};
 
     KeyPair keyPair;
-    keyPair.publicKey = pImpl->serializePublicKey(pkey);
-    keyPair.privateKey = pImpl->serializePrivateKey(pkey);
+    keyPair.publicKey = pImpl->SerializePublicKey(pkey);
+    keyPair.privateKey = pImpl->SerializePrivateKey(pkey);
 
     EVP_PKEY_free(pkey);
     return keyPair;
 }
 
-std::vector<uint8_t> CryptoManager::encrypt(const std::vector<uint8_t>& data,
+std::vector<uint8_t> CryptoManager::Encrypt(const std::vector<uint8_t>& data,
                                            const std::vector<uint8_t>& recipientPublicKey) {
-    EVP_PKEY* pubKey = pImpl->deserializePublicKey(recipientPublicKey);
+    EVP_PKEY* pubKey = pImpl->DeserializePublicKey(recipientPublicKey);
     if (!pubKey) return {};
 
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(pubKey, nullptr);
@@ -132,29 +132,29 @@ std::vector<uint8_t> CryptoManager::encrypt(const std::vector<uint8_t>& data,
         return {};
     }
 
-    size_t outlen;
-    if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, data.data(), data.size()) <= 0) {
+    size_t outLen;
+    if (EVP_PKEY_encrypt(ctx, nullptr, &outLen, data.data(), data.size()) <= 0) {
         EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(pubKey);
         return {};
     }
 
-    std::vector<uint8_t> encrypted(outlen);
-    if (EVP_PKEY_encrypt(ctx, encrypted.data(), &outlen, data.data(), data.size()) <= 0) {
+    std::vector<uint8_t> encrypted(outLen);
+    if (EVP_PKEY_encrypt(ctx, encrypted.data(), &outLen, data.data(), data.size()) <= 0) {
         EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(pubKey);
         return {};
     }
 
-    encrypted.resize(outlen);
+    encrypted.resize(outLen);
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pubKey);
     return encrypted;
 }
 
-std::vector<uint8_t> CryptoManager::decrypt(const std::vector<uint8_t>& encryptedData,
+std::vector<uint8_t> CryptoManager::Decrypt(const std::vector<uint8_t>& encryptedData,
                                            const std::vector<uint8_t>& privateKey) {
-    EVP_PKEY* privKey = pImpl->deserializePrivateKey(privateKey);
+    EVP_PKEY* privKey = pImpl->DeserializePrivateKey(privateKey);
     if (!privKey) return {};
 
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(privKey, nullptr);
@@ -169,29 +169,29 @@ std::vector<uint8_t> CryptoManager::decrypt(const std::vector<uint8_t>& encrypte
         return {};
     }
 
-    size_t outlen;
-    if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, encryptedData.data(), encryptedData.size()) <= 0) {
+    size_t outLen;
+    if (EVP_PKEY_decrypt(ctx, nullptr, &outLen, encryptedData.data(), encryptedData.size()) <= 0) {
         EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(privKey);
         return {};
     }
 
-    std::vector<uint8_t> decrypted(outlen);
-    if (EVP_PKEY_decrypt(ctx, decrypted.data(), &outlen, encryptedData.data(), encryptedData.size()) <= 0) {
+    std::vector<uint8_t> decrypted(outLen);
+    if (EVP_PKEY_decrypt(ctx, decrypted.data(), &outLen, encryptedData.data(), encryptedData.size()) <= 0) {
         EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(privKey);
         return {};
     }
 
-    decrypted.resize(outlen);
+    decrypted.resize(outLen);
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(privKey);
     return decrypted;
 }
 
-std::vector<uint8_t> CryptoManager::sign(const std::vector<uint8_t>& data,
+std::vector<uint8_t> CryptoManager::Sign(const std::vector<uint8_t>& data,
                                         const std::vector<uint8_t>& privateKey) {
-    EVP_PKEY* privKey = pImpl->deserializePrivateKey(privateKey);
+    EVP_PKEY* privKey = pImpl->DeserializePrivateKey(privateKey);
     if (!privKey) return {};
 
     EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
@@ -212,30 +212,30 @@ std::vector<uint8_t> CryptoManager::sign(const std::vector<uint8_t>& data,
         return {};
     }
 
-    size_t siglen;
-    if (EVP_DigestSignFinal(mdctx, nullptr, &siglen) <= 0) {
+    size_t sigLen;
+    if (EVP_DigestSignFinal(mdctx, nullptr, &sigLen) <= 0) {
         EVP_MD_CTX_free(mdctx);
         EVP_PKEY_free(privKey);
         return {};
     }
 
-    std::vector<uint8_t> signature(siglen);
-    if (EVP_DigestSignFinal(mdctx, signature.data(), &siglen) <= 0) {
+    std::vector<uint8_t> signature(sigLen);
+    if (EVP_DigestSignFinal(mdctx, signature.data(), &sigLen) <= 0) {
         EVP_MD_CTX_free(mdctx);
         EVP_PKEY_free(privKey);
         return {};
     }
 
-    signature.resize(siglen);
+    signature.resize(sigLen);
     EVP_MD_CTX_free(mdctx);
     EVP_PKEY_free(privKey);
     return signature;
 }
 
-bool CryptoManager::verify(const std::vector<uint8_t>& data,
+bool CryptoManager::Verify(const std::vector<uint8_t>& data,
                           const std::vector<uint8_t>& signature,
                           const std::vector<uint8_t>& publicKey) {
-    EVP_PKEY* pubKey = pImpl->deserializePublicKey(publicKey);
+    EVP_PKEY* pubKey = pImpl->DeserializePublicKey(publicKey);
     if (!pubKey) return false;
 
     EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
@@ -262,7 +262,7 @@ bool CryptoManager::verify(const std::vector<uint8_t>& data,
     return result == 1;
 }
 
-std::string CryptoManager::generatePeerId(const std::vector<uint8_t>& publicKey) {
+std::string CryptoManager::GeneratePeerId(const std::vector<uint8_t>& publicKey) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256(publicKey.data(), publicKey.size(), hash);
 
@@ -273,12 +273,12 @@ std::string CryptoManager::generatePeerId(const std::vector<uint8_t>& publicKey)
     return ss.str();
 }
 
-std::array<uint8_t, 32> CryptoManager::deriveSharedSecret(const std::vector<uint8_t>& privateKey,
+std::array<uint8_t, 32> CryptoManager::DeriveSharedSecret(const std::vector<uint8_t>& privateKey,
                                                          const std::vector<uint8_t>& publicKey) {
     std::array<uint8_t, 32> sharedSecret{};
     
-    EVP_PKEY* privKey = pImpl->deserializePrivateKey(privateKey);
-    EVP_PKEY* pubKey = pImpl->deserializePublicKey(publicKey);
+    EVP_PKEY* privKey = pImpl->DeserializePrivateKey(privateKey);
+    EVP_PKEY* pubKey = pImpl->DeserializePublicKey(publicKey);
     
     if (!privKey || !pubKey) {
         if (privKey) EVP_PKEY_free(privKey);

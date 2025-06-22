@@ -1,7 +1,7 @@
-#include "network.hpp"
-#include "peer_manager.hpp"
-#include "crypto.hpp"
-#include "cli_interface.hpp"
+#include "Network.hpp"
+#include "PeerManager.hpp"
+#include "Crypto.hpp"
+#include "CliInterface.hpp"
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
         p2p::NetworkManager network(ioContext, peerManager);
         
         // Generate local peer identity
-        auto keyPair = crypto.generateKeyPair();
-        std::string peerId = crypto.generatePeerId(keyPair.publicKey);
+        auto keyPair = crypto.GenerateKeyPair();
+        std::string peerId = crypto.GeneratePeerId(keyPair.publicKey);
         
         p2p::PeerInfo localPeer;
         localPeer.id = peerId;
@@ -65,17 +65,17 @@ int main(int argc, char* argv[]) {
         localPeer.port = port;
         localPeer.publicKey = keyPair.publicKey;
         localPeer.isConnected = true;
-        peerManager.setLocalPeer(localPeer);
+        peerManager.SetLocalPeer(localPeer);
         
         std::cout << "Starting P2P Chat System" << std::endl;
         std::cout << "Local peer ID: " << peerId << std::endl;
         std::cout << "Listening on port: " << port << std::endl;
         
         // Load peers from file
-        peerManager.loadPeersFromFile(peersFile);
+        peerManager.LoadPeersFromFile(peersFile);
         
         // Start network
-        network.start(port);
+        network.Start(port);
         
         // Start IO context in separate thread
         std::thread ioThread([&ioContext]() {
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
                 std::string address = connectStr.substr(0, colonPos);
                 uint16_t peerPort = static_cast<uint16_t>(
                     std::stoul(connectStr.substr(colonPos + 1)));
-                network.connectToPeer(address, peerPort);
+                network.ConnectToPeer(address, peerPort);
             }
         }
         
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
         
         // Run CLI in main thread
         std::thread cliThread([&cli]() {
-            cli.run();
+            cli.Run();
             g_running = false;
         });
         
@@ -110,9 +110,9 @@ int main(int argc, char* argv[]) {
         }
         
         // Cleanup
-        cli.stop();
-        network.stop();
-        peerManager.savePeersToFile(peersFile);
+        cli.Stop();
+        network.Stop();
+        peerManager.SavePeersToFile(peersFile);
         
         ioContext.stop();
         if (ioThread.joinable()) {

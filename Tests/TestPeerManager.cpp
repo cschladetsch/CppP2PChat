@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "peer_manager.hpp"
+#include "PeerManager.hpp"
 #include <filesystem>
 
 using namespace p2p;
@@ -29,9 +29,9 @@ protected:
 
 TEST_F(PeerManagerTest, AddAndGetPeer) {
     auto peer = createTestPeer("1");
-    peerManager.addPeer(peer);
+    peerManager.AddPeer(peer);
     
-    auto retrieved = peerManager.getPeer("1");
+    auto retrieved = peerManager.GetPeer("1");
     ASSERT_TRUE(retrieved.has_value());
     EXPECT_EQ(retrieved->id, peer.id);
     EXPECT_EQ(retrieved->address, peer.address);
@@ -40,24 +40,24 @@ TEST_F(PeerManagerTest, AddAndGetPeer) {
 
 TEST_F(PeerManagerTest, RemovePeer) {
     auto peer = createTestPeer("1");
-    peerManager.addPeer(peer);
+    peerManager.AddPeer(peer);
     
-    peerManager.removePeer("1");
-    auto retrieved = peerManager.getPeer("1");
+    peerManager.RemovePeer("1");
+    auto retrieved = peerManager.GetPeer("1");
     EXPECT_FALSE(retrieved.has_value());
 }
 
 TEST_F(PeerManagerTest, UpdatePeerStatus) {
     auto peer = createTestPeer("1");
-    peerManager.addPeer(peer);
+    peerManager.AddPeer(peer);
     
-    peerManager.updatePeerStatus("1", true);
-    auto retrieved = peerManager.getPeer("1");
+    peerManager.UpdatePeerStatus("1", true);
+    auto retrieved = peerManager.GetPeer("1");
     ASSERT_TRUE(retrieved.has_value());
     EXPECT_TRUE(retrieved->isConnected);
     
-    peerManager.updatePeerStatus("1", false);
-    retrieved = peerManager.getPeer("1");
+    peerManager.UpdatePeerStatus("1", false);
+    retrieved = peerManager.GetPeer("1");
     ASSERT_TRUE(retrieved.has_value());
     EXPECT_FALSE(retrieved->isConnected);
 }
@@ -67,11 +67,11 @@ TEST_F(PeerManagerTest, GetAllPeers) {
     auto peer2 = createTestPeer("2");
     auto peer3 = createTestPeer("3");
     
-    peerManager.addPeer(peer1);
-    peerManager.addPeer(peer2);
-    peerManager.addPeer(peer3);
+    peerManager.AddPeer(peer1);
+    peerManager.AddPeer(peer2);
+    peerManager.AddPeer(peer3);
     
-    auto allPeers = peerManager.getAllPeers();
+    auto allPeers = peerManager.GetAllPeers();
     EXPECT_EQ(allPeers.size(), 3);
 }
 
@@ -83,19 +83,19 @@ TEST_F(PeerManagerTest, GetConnectedPeers) {
     peer1.isConnected = true;
     peer3.isConnected = true;
     
-    peerManager.addPeer(peer1);
-    peerManager.addPeer(peer2);
-    peerManager.addPeer(peer3);
+    peerManager.AddPeer(peer1);
+    peerManager.AddPeer(peer2);
+    peerManager.AddPeer(peer3);
     
-    auto connectedPeers = peerManager.getConnectedPeers();
+    auto connectedPeers = peerManager.GetConnectedPeers();
     EXPECT_EQ(connectedPeers.size(), 2);
 }
 
 TEST_F(PeerManagerTest, LocalPeer) {
     auto localPeer = createTestPeer("local");
-    peerManager.setLocalPeer(localPeer);
+    peerManager.SetLocalPeer(localPeer);
     
-    const auto& retrieved = peerManager.getLocalPeer();
+    const auto& retrieved = peerManager.GetLocalPeer();
     EXPECT_EQ(retrieved.id, localPeer.id);
     EXPECT_EQ(retrieved.address, localPeer.address);
     EXPECT_EQ(retrieved.port, localPeer.port);
@@ -105,17 +105,17 @@ TEST_F(PeerManagerTest, SaveAndLoadPeers) {
     auto peer1 = createTestPeer("1");
     auto peer2 = createTestPeer("2");
     
-    peerManager.addPeer(peer1);
-    peerManager.addPeer(peer2);
+    peerManager.AddPeer(peer1);
+    peerManager.AddPeer(peer2);
     
-    peerManager.savePeersToFile("test_peers.txt");
+    peerManager.SavePeersToFile("test_peers.txt");
     
     // Create new peer manager and load
     PeerManager newPeerManager;
-    newPeerManager.loadPeersFromFile("test_peers.txt");
+    newPeerManager.LoadPeersFromFile("test_peers.txt");
     
-    auto loaded1 = newPeerManager.getPeer("1");
-    auto loaded2 = newPeerManager.getPeer("2");
+    auto loaded1 = newPeerManager.GetPeer("1");
+    auto loaded2 = newPeerManager.GetPeer("2");
     
     ASSERT_TRUE(loaded1.has_value());
     ASSERT_TRUE(loaded2.has_value());
@@ -132,13 +132,13 @@ TEST_F(PeerManagerTest, SaveAndLoadPeers) {
 }
 
 TEST_F(PeerManagerTest, NonExistentPeer) {
-    auto retrieved = peerManager.getPeer("nonexistent");
+    auto retrieved = peerManager.GetPeer("nonexistent");
     EXPECT_FALSE(retrieved.has_value());
 }
 
 TEST_F(PeerManagerTest, UpdateNonExistentPeer) {
     // Should not crash when updating non-existent peer
-    peerManager.updatePeerStatus("nonexistent", true);
-    auto retrieved = peerManager.getPeer("nonexistent");
+    peerManager.UpdatePeerStatus("nonexistent", true);
+    auto retrieved = peerManager.GetPeer("nonexistent");
     EXPECT_FALSE(retrieved.has_value());
 }

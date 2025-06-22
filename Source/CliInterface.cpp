@@ -1,8 +1,8 @@
-#include "cli_interface.hpp"
-#include "network.hpp"
-#include "peer_manager.hpp"
-#include "crypto.hpp"
-#include "message.hpp"
+#include "CliInterface.hpp"
+#include "Network.hpp"
+#include "PeerManager.hpp"
+#include "Crypto.hpp"
+#include "Message.hpp"
 #include <rang.hpp>
 #include <replxx.hxx>
 #include <iostream>
@@ -65,29 +65,29 @@ struct CLIInterface::Impl {
 };
 
 CLIInterface::CLIInterface(NetworkManager& network, PeerManager& peerManager, CryptoManager& crypto)
-    : pImpl(std::make_unique<Impl>(network, peerManager, crypto)) {
-    registerCommands();
+    : pImpl_(std::make_unique<Impl>(network, peerManager, crypto)) {
+    RegisterCommands();
 }
 
 CLIInterface::~CLIInterface() {
-    stop();
+    Stop();
 }
 
-void CLIInterface::run() {
-    pImpl->running = true;
-    pImpl->startDisplayThread();
+void CLIInterface::Run() {
+    pImpl_->running = true;
+    pImpl_->startDisplayThread();
     
-    displaySystemMessage("P2P Chat System Started");
-    displaySystemMessage("Type 'help' for available commands");
+    DisplaySystemMessage("P2P Chat System Started");
+    DisplaySystemMessage("Type 'help' for available commands");
     
     // Set up message handler
-    pImpl->network.setMessageHandler([this](const std::string& peerId, const Message& msg) {
-        if (msg.getType() == MessageType::TEXT) {
-            std::string text(msg.getPayload().begin(), msg.getPayload().end());
-            displayMessage(peerId, text, true);
-        } else if (msg.getType() == MessageType::HANDSHAKE) {
+    pImpl_->network.SetMessageHandler([this](const std::string& peerId, const Message& msg) {
+        if (msg.GetType() == MessageType::TEXT) {
+            std::string text(msg.GetPayload().begin(), msg.GetPayload().end());
+            DisplayMessage(peerId, text, true);
+        } else if (msg.GetType() == MessageType::HANDSHAKE) {
             // Handle handshake
-            auto payload = msg.getPayload();
+            auto payload = msg.GetPayload();
             if (payload.size() >= 2) {
                 uint16_t idLen = (static_cast<uint16_t>(payload[0]) << 8) | payload[1];
                 if (payload.size() >= static_cast<size_t>(2 + idLen)) {
@@ -100,48 +100,48 @@ void CLIInterface::run() {
                     peer.isConnected = true;
                     peer.lastSeen = std::chrono::system_clock::now();
                     
-                    pImpl->peerManager.addPeer(peer);
-                    displaySystemMessage("Handshake received from " + peerId);
+                    pImpl_->peerManager.AddPeer(peer);
+                    DisplaySystemMessage("Handshake received from " + peerId);
                 }
             }
         }
     });
     
     // Set up connection handler
-    pImpl->network.setConnectionHandler([this](const std::string& peerId, bool connected) {
-        pImpl->peerManager.updatePeerStatus(peerId, connected);
+    pImpl_->network.SetConnectionHandler([this](const std::string& peerId, bool connected) {
+        pImpl_->peerManager.UpdatePeerStatus(peerId, connected);
         if (connected) {
-            displaySuccess("Connected to peer: " + peerId);
+            DisplaySuccess("Connected to peer: " + peerId);
         } else {
-            displayWarning("Disconnected from peer: " + peerId);
+            DisplayWarning("Disconnected from peer: " + peerId);
         }
     });
     
     // Main CLI loop
-    while (pImpl->running) {
-        const char* input = pImpl->rx.input("p2p> ");
+    while (pImpl_->running) {
+        const char* input = pImpl_->rx.input("p2p> ");
         if (input == nullptr) {
             break;
         }
         
         std::string command(input);
         if (!command.empty()) {
-            pImpl->rx.history_add(input);
-            processCommand(command);
+            pImpl_->rx.history_add(input);
+            ProcessCommand(command);
         }
     }
 }
 
-void CLIInterface::stop() {
-    pImpl->running = false;
-    pImpl->displayCv.notify_all();
-    if (pImpl->displayThread.joinable()) {
-        pImpl->displayThread.join();
+void CLIInterface::Stop() {
+    pImpl_->running = false;
+    pImpl_->displayCv.notify_all();
+    if (pImpl_->displayThread.joinable()) {
+        pImpl_->displayThread.join();
     }
 }
 
-void CLIInterface::displayMessage(const std::string& peerId, const std::string& message, bool incoming) {
-    pImpl->queueDisplay([=]() {
+void CLIInterface::DisplayMessage(const std::string& peerId, const std::string& message, bool incoming) {
+    pImpl_->queueDisplay([=]() {
         auto now = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(now);
         auto tm = *std::localtime(&time_t);
@@ -164,59 +164,59 @@ void CLIInterface::displayMessage(const std::string& peerId, const std::string& 
     });
 }
 
-void CLIInterface::displaySystemMessage(const std::string& message) {
-    pImpl->queueDisplay([=]() {
+void CLIInterface::DisplaySystemMessage(const std::string& message) {
+    pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::blue << "[SYSTEM] " 
                   << rang::style::reset << message << std::endl;
     });
 }
 
-void CLIInterface::displayError(const std::string& error) {
-    pImpl->queueDisplay([=]() {
+void CLIInterface::DisplayError(const std::string& error) {
+    pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::red << "[ERROR] " 
                   << rang::style::reset << error << std::endl;
     });
 }
 
-void CLIInterface::displaySuccess(const std::string& message) {
-    pImpl->queueDisplay([=]() {
+void CLIInterface::DisplaySuccess(const std::string& message) {
+    pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::green << "[SUCCESS] " 
                   << rang::style::reset << message << std::endl;
     });
 }
 
-void CLIInterface::displayWarning(const std::string& message) {
-    pImpl->queueDisplay([=]() {
+void CLIInterface::DisplayWarning(const std::string& message) {
+    pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::yellow << "[WARNING] " 
                   << rang::style::reset << message << std::endl;
     });
 }
 
-void CLIInterface::registerCommands() {
-    pImpl->commands["connect"] = [this](const auto& args) { handleConnect(args); };
-    pImpl->commands["disconnect"] = [this](const auto& args) { handleDisconnect(args); };
-    pImpl->commands["list"] = [this](const auto& args) { handleList(args); };
-    pImpl->commands["send"] = [this](const auto& args) { handleSend(args); };
-    pImpl->commands["broadcast"] = [this](const auto& args) { handleBroadcast(args); };
-    pImpl->commands["help"] = [this](const auto& args) { handleHelp(args); };
-    pImpl->commands["quit"] = [this](const auto& args) { handleQuit(args); };
-    pImpl->commands["exit"] = [this](const auto& args) { handleQuit(args); };
-    pImpl->commands["info"] = [this](const auto& args) { handleInfo(args); };
+void CLIInterface::RegisterCommands() {
+    pImpl_->commands["connect"] = [this](const auto& args) { HandleConnect(args); };
+    pImpl_->commands["disconnect"] = [this](const auto& args) { HandleDisconnect(args); };
+    pImpl_->commands["list"] = [this](const auto& args) { HandleList(args); };
+    pImpl_->commands["send"] = [this](const auto& args) { HandleSend(args); };
+    pImpl_->commands["broadcast"] = [this](const auto& args) { HandleBroadcast(args); };
+    pImpl_->commands["help"] = [this](const auto& args) { HandleHelp(args); };
+    pImpl_->commands["quit"] = [this](const auto& args) { HandleQuit(args); };
+    pImpl_->commands["exit"] = [this](const auto& args) { HandleQuit(args); };
+    pImpl_->commands["info"] = [this](const auto& args) { HandleInfo(args); };
 }
 
-void CLIInterface::processCommand(const std::string& input) {
-    auto args = parseCommand(input);
+void CLIInterface::ProcessCommand(const std::string& input) {
+    auto args = ParseCommand(input);
     if (args.empty()) return;
     
-    auto it = pImpl->commands.find(args[0]);
-    if (it != pImpl->commands.end()) {
+    auto it = pImpl_->commands.find(args[0]);
+    if (it != pImpl_->commands.end()) {
         it->second(args);
     } else {
-        displayError("Unknown command: " + args[0]);
+        DisplayError("Unknown command: " + args[0]);
     }
 }
 
-std::vector<std::string> CLIInterface::parseCommand(const std::string& input) {
+std::vector<std::string> CLIInterface::ParseCommand(const std::string& input) {
     std::vector<std::string> args;
     std::istringstream iss(input);
     std::string arg;
@@ -226,40 +226,40 @@ std::vector<std::string> CLIInterface::parseCommand(const std::string& input) {
     return args;
 }
 
-void CLIInterface::handleConnect(const std::vector<std::string>& args) {
+void CLIInterface::HandleConnect(const std::vector<std::string>& args) {
     if (args.size() < 3) {
-        displayError("Usage: connect <address> <port>");
+        DisplayError("Usage: connect <address> <port>");
         return;
     }
     
     try {
         uint16_t port = static_cast<uint16_t>(std::stoul(args[2]));
-        pImpl->network.connectToPeer(args[1], port);
-        displaySystemMessage("Connecting to " + args[1] + ":" + args[2] + "...");
+        pImpl_->network.ConnectToPeer(args[1], port);
+        DisplaySystemMessage("Connecting to " + args[1] + ":" + args[2] + "...");
     } catch (const std::exception& e) {
-        displayError("Invalid port number");
+        DisplayError("Invalid port number");
     }
 }
 
-void CLIInterface::handleDisconnect(const std::vector<std::string>& args) {
+void CLIInterface::HandleDisconnect(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        displayError("Usage: disconnect <peer_id>");
+        DisplayError("Usage: disconnect <peer_id>");
         return;
     }
     
-    pImpl->network.disconnectPeer(args[1]);
-    displaySystemMessage("Disconnected from " + args[1]);
+    pImpl_->network.DisconnectPeer(args[1]);
+    DisplaySystemMessage("Disconnected from " + args[1]);
 }
 
-void CLIInterface::handleList(const std::vector<std::string>& args) {
-    auto peers = pImpl->peerManager.getAllPeers();
+void CLIInterface::HandleList(const std::vector<std::string>& args) {
+    auto peers = pImpl_->peerManager.GetAllPeers();
     
     if (peers.empty()) {
-        displaySystemMessage("No peers connected");
+        DisplaySystemMessage("No peers connected");
         return;
     }
     
-    displaySystemMessage("Connected peers:");
+    DisplaySystemMessage("Connected peers:");
     for (const auto& peer : peers) {
         std::stringstream statusStream;
         if (peer.isConnected) {
@@ -269,7 +269,7 @@ void CLIInterface::handleList(const std::vector<std::string>& args) {
         }
         std::string status = statusStream.str();
         
-        pImpl->queueDisplay([=]() {
+        pImpl_->queueDisplay([=]() {
             std::cout << "  " << status << rang::style::reset 
                       << " " << peer.id << " - " 
                       << peer.address << ":" << peer.port << std::endl;
@@ -277,9 +277,9 @@ void CLIInterface::handleList(const std::vector<std::string>& args) {
     }
 }
 
-void CLIInterface::handleSend(const std::vector<std::string>& args) {
+void CLIInterface::HandleSend(const std::vector<std::string>& args) {
     if (args.size() < 3) {
-        displayError("Usage: send <peer_id> <message>");
+        DisplayError("Usage: send <peer_id> <message>");
         return;
     }
     
@@ -289,14 +289,14 @@ void CLIInterface::handleSend(const std::vector<std::string>& args) {
         message += args[i];
     }
     
-    auto msg = Message::createTextMessage(message);
-    pImpl->network.sendMessage(args[1], msg);
-    displayMessage(args[1], message, false);
+    auto msg = Message::CreateTextMessage(message);
+    pImpl_->network.SendMessage(args[1], msg);
+    DisplayMessage(args[1], message, false);
 }
 
-void CLIInterface::handleBroadcast(const std::vector<std::string>& args) {
+void CLIInterface::HandleBroadcast(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        displayError("Usage: broadcast <message>");
+        DisplayError("Usage: broadcast <message>");
         return;
     }
     
@@ -306,14 +306,14 @@ void CLIInterface::handleBroadcast(const std::vector<std::string>& args) {
         message += args[i];
     }
     
-    auto msg = Message::createTextMessage(message);
-    pImpl->network.broadcastMessage(msg);
-    displayMessage("all", message, false);
+    auto msg = Message::CreateTextMessage(message);
+    pImpl_->network.BroadcastMessage(msg);
+    DisplayMessage("all", message, false);
 }
 
-void CLIInterface::handleHelp(const std::vector<std::string>& args) {
-    displaySystemMessage("Available commands:");
-    pImpl->queueDisplay([]() {
+void CLIInterface::HandleHelp(const std::vector<std::string>& args) {
+    DisplaySystemMessage("Available commands:");
+    pImpl_->queueDisplay([]() {
         std::cout << "  connect <address> <port> - Connect to a peer\n"
                   << "  disconnect <peer_id>     - Disconnect from a peer\n"
                   << "  list                     - List all peers\n"
@@ -325,15 +325,15 @@ void CLIInterface::handleHelp(const std::vector<std::string>& args) {
     });
 }
 
-void CLIInterface::handleQuit(const std::vector<std::string>& args) {
-    displaySystemMessage("Shutting down...");
-    pImpl->running = false;
+void CLIInterface::HandleQuit(const std::vector<std::string>& args) {
+    DisplaySystemMessage("Shutting down...");
+    pImpl_->running = false;
 }
 
-void CLIInterface::handleInfo(const std::vector<std::string>& args) {
-    auto localPeer = pImpl->peerManager.getLocalPeer();
-    displaySystemMessage("Local peer information:");
-    pImpl->queueDisplay([=]() {
+void CLIInterface::HandleInfo(const std::vector<std::string>& args) {
+    auto localPeer = pImpl_->peerManager.GetLocalPeer();
+    DisplaySystemMessage("Local peer information:");
+    pImpl_->queueDisplay([=]() {
         std::cout << "  ID: " << localPeer.id << "\n"
                   << "  Address: " << localPeer.address << ":" << localPeer.port << "\n"
                   << "  Public Key Size: " << localPeer.publicKey.size() << " bytes\n";

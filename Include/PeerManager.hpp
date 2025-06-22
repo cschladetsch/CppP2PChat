@@ -23,19 +23,19 @@ public:
     PeerManager();
     ~PeerManager();
 
-    void addPeer(const PeerInfo& peer);
-    void removePeer(const std::string& peerId);
-    void updatePeerStatus(const std::string& peerId, bool connected);
+    void AddPeer(const PeerInfo& peer);
+    void RemovePeer(const std::string& peerId);
+    void UpdatePeerStatus(const std::string& peerId, bool connected);
     
-    std::optional<PeerInfo> getPeer(const std::string& peerId) const;
-    std::vector<PeerInfo> getAllPeers() const;
-    std::vector<PeerInfo> getConnectedPeers() const;
+    std::optional<PeerInfo> GetPeer(const std::string& peerId) const;
+    std::vector<PeerInfo> GetAllPeers() const;
+    std::vector<PeerInfo> GetConnectedPeers() const;
     
-    void setLocalPeer(const PeerInfo& localPeer);
-    const PeerInfo& getLocalPeer() const;
+    void SetLocalPeer(const PeerInfo& localPeer);
+    const PeerInfo& GetLocalPeer() const;
 
-    void savePeersToFile(const std::string& filename);
-    void loadPeersFromFile(const std::string& filename);
+    void SavePeersToFile(const std::string& filename);
+    void LoadPeersFromFile(const std::string& filename);
 
 private:
     mutable std::mutex mutex_;

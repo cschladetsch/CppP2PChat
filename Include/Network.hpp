@@ -22,19 +22,19 @@ public:
     NetworkManager(boost::asio::io_context& ioContext, PeerManager& peerManager);
     ~NetworkManager();
 
-    void start(uint16_t port);
-    void stop();
+    void Start(uint16_t port);
+    void Stop();
 
-    void connectToPeer(const std::string& address, uint16_t port);
-    void disconnectPeer(const std::string& peerId);
+    void ConnectToPeer(const std::string& address, uint16_t port);
+    void DisconnectPeer(const std::string& peerId);
     
-    void sendMessage(const std::string& peerId, const Message& message);
-    void broadcastMessage(const Message& message);
+    void SendMessage(const std::string& peerId, const Message& message);
+    void BroadcastMessage(const Message& message);
 
-    void setMessageHandler(MessageHandler handler);
-    void setConnectionHandler(ConnectionHandler handler);
+    void SetMessageHandler(MessageHandler handler);
+    void SetConnectionHandler(ConnectionHandler handler);
 
-    std::vector<std::string> getConnectedPeers() const;
+    std::vector<std::string> GetConnectedPeers() const;
 
 private:
     struct Impl;
