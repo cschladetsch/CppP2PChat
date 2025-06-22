@@ -74,7 +74,7 @@ void PeerManager::SavePeersToFile(const std::string& filename) {
     for (const auto& [id, peer] : peers_) {
         file << peer.id << "|" 
              << peer.address << "|" 
-             << peer.port << "|";
+             << std::dec << peer.port << "|";
         
         // Save public key as hex
         for (uint8_t byte : peer.publicKey) {

@@ -119,7 +119,13 @@ void CLIInterface::Run() {
     
     // Main CLI loop
     while (pImpl_->running) {
-        const char* input = pImpl_->rx.input("p2p> ");
+        // Build colored prompt with lambda symbol
+        std::stringstream promptStream;
+        promptStream << rang::fg::magenta << "λ" << rang::style::reset 
+                    << rang::style::dim << " p2p" << rang::style::reset << "> ";
+        std::string prompt = promptStream.str();
+        
+        const char* input = pImpl_->rx.input(prompt);
         if (input == nullptr) {
             break;
         }
@@ -152,43 +158,49 @@ void CLIInterface::DisplayMessage(const std::string& peerId, const std::string& 
         
         if (incoming) {
             std::cout << rang::fg::cyan << peerId.substr(0, 8) 
-                      << rang::style::reset << ": ";
+                      << rang::style::reset << ": "
+                      << rang::fg::yellow << message << rang::style::reset;
         } else {
             std::cout << rang::fg::green << "You" 
                       << rang::style::reset << " -> " 
                       << rang::fg::cyan << peerId.substr(0, 8) 
-                      << rang::style::reset << ": ";
+                      << rang::style::reset << ": "
+                      << rang::fg::yellow << message << rang::style::reset;
         }
         
-        std::cout << message << std::endl;
+        std::cout << std::endl;
     });
 }
 
 void CLIInterface::DisplaySystemMessage(const std::string& message) {
     pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::blue << "[SYSTEM] " 
-                  << rang::style::reset << message << std::endl;
+                  << rang::style::reset << rang::style::dim 
+                  << message << rang::style::reset << std::endl;
     });
 }
 
 void CLIInterface::DisplayError(const std::string& error) {
     pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::red << "[ERROR] " 
-                  << rang::style::reset << error << std::endl;
+                  << rang::style::reset << rang::fg::red << rang::style::dim
+                  << error << rang::style::reset << std::endl;
     });
 }
 
 void CLIInterface::DisplaySuccess(const std::string& message) {
     pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::green << "[SUCCESS] " 
-                  << rang::style::reset << message << std::endl;
+                  << rang::style::reset << rang::fg::green << rang::style::dim
+                  << message << rang::style::reset << std::endl;
     });
 }
 
 void CLIInterface::DisplayWarning(const std::string& message) {
     pImpl_->queueDisplay([=]() {
         std::cout << rang::fg::yellow << "[WARNING] " 
-                  << rang::style::reset << message << std::endl;
+                  << rang::style::reset << rang::fg::yellow << rang::style::dim
+                  << message << rang::style::reset << std::endl;
     });
 }
 

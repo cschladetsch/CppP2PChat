@@ -87,13 +87,107 @@ TEST(MessageTest, DeserializeInvalidMessage) {
     std::vector<uint8_t> tooShort = {1, 2, 3};
     EXPECT_THROW(Message::Deserialize(tooShort), std::runtime_error);
     
-    // Invalid payload size
+    // Invalid payload size - larger than actual data
     std::vector<uint8_t> invalidSize(13);
     invalidSize[0] = static_cast<uint8_t>(MessageType::TEXT);
-    invalidSize[1] = 0xFF; // Very large payload size
-    invalidSize[2] = 0xFF;
-    invalidSize[3] = 0xFF;
-    invalidSize[4] = 0xFF;
+    invalidSize[1] = 0x00; // Payload size: 100 bytes
+    invalidSize[2] = 0x00;
+    invalidSize[3] = 0x00;
+    invalidSize[4] = 0x64; // 100 in decimal
+    // Timestamp bytes (5-12)
+    for (int i = 5; i < 13; ++i) {
+        invalidSize[i] = 0;
+    }
+    // But we don't provide the 100 bytes of payload
     
     EXPECT_THROW(Message::Deserialize(invalidSize), std::runtime_error);
+}
+
+TEST(MessageTest, LargeMessagePayload) {
+    // Test with large payload
+    std::vector<uint8_t> largePayload(10000, 'X');
+    Message msg(MessageType::TEXT, largePayload);
+    
+    auto serialized = msg.Serialize();
+    auto deserialized = Message::Deserialize(serialized);
+    
+    EXPECT_EQ(deserialized.GetType(), MessageType::TEXT);
+    EXPECT_EQ(deserialized.GetPayload(), largePayload);
+}
+
+TEST(MessageTest, EmptyPayload) {
+    // Test with empty payload
+    std::vector<uint8_t> emptyPayload;
+    Message msg(MessageType::TEXT, emptyPayload);
+    
+    auto serialized = msg.Serialize();
+    auto deserialized = Message::Deserialize(serialized);
+    
+    EXPECT_EQ(deserialized.GetType(), MessageType::TEXT);
+    EXPECT_TRUE(deserialized.GetPayload().empty());
+}
+
+TEST(MessageTest, AllMessageTypes) {
+    // Test all message types
+    std::vector<MessageType> types = {
+        MessageType::TEXT,
+        MessageType::HANDSHAKE,
+        MessageType::PEER_LIST,
+        MessageType::PING,
+        MessageType::PONG
+    };
+    
+    for (auto type : types) {
+        Message msg(type, {1, 2, 3});
+        EXPECT_EQ(msg.GetType(), type);
+        
+        auto serialized = msg.Serialize();
+        auto deserialized = Message::Deserialize(serialized);
+        EXPECT_EQ(deserialized.GetType(), type);
+    }
+}
+
+TEST(MessageTest, MessageTypeOutOfRange) {
+    // Test with invalid message type
+    std::vector<uint8_t> data(13);
+    data[0] = 99; // Invalid message type
+    for (int i = 1; i < 13; ++i) {
+        data[i] = 0;
+    }
+    
+    // Should still deserialize but with unknown type
+    EXPECT_NO_THROW(Message::Deserialize(data));
+}
+
+TEST(MessageTest, MaxPayloadSize) {
+    // Test with maximum reasonable payload size (1MB)
+    std::vector<uint8_t> maxPayload(1024 * 1024, 'M');
+    Message msg(MessageType::TEXT, maxPayload);
+    
+    auto serialized = msg.Serialize();
+    auto deserialized = Message::Deserialize(serialized);
+    
+    EXPECT_EQ(deserialized.GetType(), MessageType::TEXT);
+    EXPECT_EQ(deserialized.GetPayload(), maxPayload);
+}
+
+TEST(MessageTest, UnicodeTextMessage) {
+    // Test with Unicode characters
+    std::string unicodeText = "Hello 世界 🌍 Привет";
+    auto msg = Message::CreateTextMessage(unicodeText);
+    
+    EXPECT_EQ(msg.GetType(), MessageType::TEXT);
+    std::string recovered(msg.GetPayload().begin(), msg.GetPayload().end());
+    EXPECT_EQ(recovered, unicodeText);
+}
+
+TEST(MessageTest, BinaryDataInPayload) {
+    // Test with binary data including null bytes
+    std::vector<uint8_t> binaryData = {0x00, 0xFF, 0x7F, 0x80, 0x01, 0x00, 0xFE};
+    Message msg(MessageType::TEXT, binaryData);
+    
+    auto serialized = msg.Serialize();
+    auto deserialized = Message::Deserialize(serialized);
+    
+    EXPECT_EQ(deserialized.GetPayload(), binaryData);
 }

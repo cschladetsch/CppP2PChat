@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin)
+
 # Find required packages
 find_package(Boost 1.75 REQUIRED COMPONENTS system thread filesystem chrono program_options)
 find_package(OpenSSL REQUIRED)
@@ -80,20 +85,51 @@ if(BUILD_TESTS)
     )
     FetchContent_MakeAvailable(googletest)
     
-    # Test executables
-    add_executable(TestCrypto Tests/TestCrypto.cpp Source/Crypto.cpp)
-    target_link_libraries(TestCrypto 
-        gtest_main
+    # Create a library with all source files except main
+    add_library(p2pchat_lib STATIC
+        Source/Crypto.cpp
+        Source/Network.cpp
+        Source/Message.cpp
+        Source/PeerManager.cpp
+        Source/CliInterface.cpp
+    )
+    
+    target_link_libraries(p2pchat_lib
+        ${Boost_LIBRARIES}
         ${OPENSSL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        replxx::replxx
     )
     
-    add_executable(TestMessage Tests/TestMessage.cpp Source/Message.cpp)
-    target_link_libraries(TestMessage 
+    # Test executables
+    add_executable(TestCrypto Tests/TestCrypto.cpp)
+    target_link_libraries(TestCrypto 
+        p2pchat_lib
         gtest_main
     )
     
-    add_executable(TestPeerManager Tests/TestPeerManager.cpp Source/PeerManager.cpp)
+    add_executable(TestMessage Tests/TestMessage.cpp)
+    target_link_libraries(TestMessage 
+        p2pchat_lib
+        gtest_main
+    )
+    
+    add_executable(TestPeerManager Tests/TestPeerManager.cpp)
     target_link_libraries(TestPeerManager 
+        p2pchat_lib
+        gtest_main
+    )
+    
+    add_executable(TestNetwork Tests/TestNetwork.cpp)
+    target_link_libraries(TestNetwork 
+        p2pchat_lib
+        gtest_main
+        gmock
+    )
+    
+    add_executable(TestCliInterface Tests/TestCliInterface.cpp)
+    target_link_libraries(TestCliInterface 
+        p2pchat_lib
         gtest_main
     )
     
@@ -102,4 +138,6 @@ if(BUILD_TESTS)
     gtest_discover_tests(TestCrypto)
     gtest_discover_tests(TestMessage)
     gtest_discover_tests(TestPeerManager)
+    gtest_discover_tests(TestNetwork)
+    gtest_discover_tests(TestCliInterface)
 endif()
